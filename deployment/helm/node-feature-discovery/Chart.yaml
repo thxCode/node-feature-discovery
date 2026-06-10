@@ -6,11 +6,11 @@ description: |
   those features using node labels.
 name: node-feature-discovery
 sources:
- - https://github.com/kubernetes-sigs/node-feature-discovery
-home: https://github.com/kubernetes-sigs/node-feature-discovery
+ - https://github.com/thxcode/node-feature-discovery
+home: https://github.com/thxcode/node-feature-discovery
 keywords:
   - feature-discovery
   - feature-detection
   - node-labels
 type: application
-version: 0.2.1
+version: 0.18.3

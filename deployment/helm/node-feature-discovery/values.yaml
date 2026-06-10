@@ -1,5 +1,5 @@
 image:
-  repository: registry.k8s.io/nfd/node-feature-discovery
+  repository: docker.io/thxcode/node-feature-discovery
   # This should be set to 'IfNotPresent' for released version
   pullPolicy: IfNotPresent
   # tag, if defined will use the given image tag, else Chart.AppVersion will be used
@@ -602,3 +602,86 @@ prometheus:
   enable: false
   scrapeInterval: 10s
   labels: {}
+
+nodeFeatureRule:
+  create: false
+#  name: nfd-rules
+#  annotations:
+#    example.com/example-annotation: "true"
+#  labels:
+#    example.com/example-label: "true"
+#  rules:
+#    - name: "example rule"
+#      labels:
+#        "vendor.io/example-feature": "true"
+#      labelsTemplate: |
+#        specifies a template to expand for dynamically generating
+#        multiple labels. Data (after template expansion) must be keys with an
+#        optional value (<key>[=<value>]) separated by newlines.
+#      annotations:
+#        "vendor.io/example-annotation": "true"
+#      vars:
+#        "vendor.io/example-var": "true"
+#      varsTemplate: |
+#        specifies a template to expand for dynamically generating
+#        multiple variables. Data (after template expansion) must be keys with an
+#        optional value (<key>[=<value>]) separated by newlines.
+#      taints:
+#        - key: "example.com/example-taint"
+#          value: "true"
+#          effect: NoSchedule
+#      extendedResources:
+#        example.com/example-extended-resource: "true"
+#      matchFeatures:
+#        - feature: cpu.cpuid
+#          matchExpressions:
+#            AVX: {op: Exists}
+#      matchAny:
+#        - matchFeatures:
+#            - feature: cpu.cpuid
+#              matchExpressions:
+#                AVX: {op: Exists}
+#        - matchFeatures:
+#            - feature: kernel.loadedmodule
+#              matchExpressions:
+#                e1000e: {op: Exists}
+
+#nodeFeatureRules:
+#  - name: example-ruleset
+#    annotations: {}
+#    labels: {}
+#    rules:
+#      - name: "example rule"
+#        labels:
+#          "vendor.io/example-feature": "true"
+#        labelsTemplate: |
+#          specifies a template to expand for dynamically generating
+#          multiple labels. Data (after template expansion) must be keys with an
+#          optional value (<key>[=<value>]) separated by newlines.
+#        annotations:
+#          "vendor.io/example-annotation": "true"
+#        vars:
+#          "vendor.io/example-var": "true"
+#        varsTemplate: |
+#          specifies a template to expand for dynamically generating
+#          multiple variables. Data (after template expansion) must be keys with an
+#          optional value (<key>[=<value>]) separated by newlines.
+#        taints:
+#          - key: "example.com/example-taint"
+#            value: "true"
+#            effect: NoSchedule
+#        extendedResources:
+#          example.com/example-extended-resource: "true"
+#        matchFeatures:
+#          - feature: cpu.cpuid
+#            matchExpressions:
+#              AVX: {op: Exists}
+#        matchAny:
+#          - matchFeatures:
+#              - feature: cpu.cpuid
+#                matchExpressions:
+#                  AVX: {op: Exists}
+#          - matchFeatures:
+#              - feature: kernel.loadedmodule
+#                matchExpressions:
+#                  e1000e: {op: Exists}

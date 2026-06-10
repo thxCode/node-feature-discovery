@@ -1,0 +1,44 @@
+{{- if .Values.nodeFeatureRule.create }}
+---
+apiVersion: nfd.k8s-sigs.io/v1alpha1
+kind: NodeFeatureRule
+metadata:
+  name: {{ .Values.nodeFeatureRule.name }}
+  labels:
+    {{- include "node-feature-discovery.labels" . | nindent 4 }}
+  {{- with .Values.nodeFeatureRule.labels }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.nodeFeatureRule.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  rules:
+    {{- with .Values.nodeFeatureRule.rules }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}
+{{- if .Values.nodeFeatureRules }}
+{{- range .Values.nodeFeatureRules }}
+---
+apiVersion: nfd.k8s-sigs.io/v1alpha1
+kind: NodeFeatureRule
+metadata:
+  name: {{ .name }}
+  labels:
+    {{- include "node-feature-discovery.labels" $ | nindent 4 }}
+  {{- with .labels }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  rules:
+    {{- with .rules }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end}}
+{{- end }}
