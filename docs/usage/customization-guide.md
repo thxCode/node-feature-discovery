@@ -614,6 +614,46 @@ NFD enforces some limitations to the namespace (or prefix)/ of the annotations:
 > annotations the features won't be advertised as node labels unless they are
 > specified in the `labels` field.
 
+Annotation values also support the `@<feature-name>.<element-name>` notation
+for dynamic values, similar to [labels](#labels). This is useful for surfacing
+detected feature attributes (e.g. CPU model name or core counts) as node
+annotations without having to encode them in a label:
+
+```yaml
+apiVersion: nfd.k8s-sigs.io/v1alpha1
+kind: NodeFeatureRule
+metadata:
+  name: cpu-info-annotations
+spec:
+  rules:
+    - name: "cpu info to annotations"
+      annotations:
+        feature.node.kubernetes.io/cpu-name: "@cpu.model.name"
+        feature.node.kubernetes.io/cpu-physical-cores: "@cpu.model.physical_cores"
+        feature.node.kubernetes.io/cpu-threads-per-core: "@cpu.model.threads_per_core"
+        feature.node.kubernetes.io/cpu-logical-cores: "@cpu.model.logical_cores"
+      matchFeatures:
+        - feature: cpu.model
+          matchExpressions:
+            vendor_id: {op: Exists}
+```
+
+This will yield into node annotations like:
+
+```yaml
+  annotations:
+    ...
+    feature.node.kubernetes.io/cpu-name: Intel(R) Xeon(R) Gold 6348 CPU @ 2.60GHz
+    feature.node.kubernetes.io/cpu-physical-cores: "28"
+    feature.node.kubernetes.io/cpu-threads-per-core: "2"
+    feature.node.kubernetes.io/cpu-logical-cores: "56"
+```
+
+Annotations carry a value-length cap of 1 KiB. If the referenced feature
+attribute cannot be resolved, the annotation is dropped (other annotations in
+the same rule are unaffected). See [available features](#available-features)
+for possible values to use.
+
 #### taints
 
 *taints* is a list of taint entries and each entry can have `key`, `value` and `effect`,
@@ -928,6 +968,18 @@ The following features are available for matching:
 |                  |              | **`family`** | int    | CPU family |
 |                  |              | **`vendor_id`** | string | CPU vendor ID |
 |                  |              | **`id`** | int        | CPU model ID |
+|                  |              | **`name`** | string   | CPU brand name as reported by the CPU (e.g. `Intel(R) Xeon(R) Gold 6348 CPU @ 2.60GHz`). Not exposed as a label by default; available for use via [NodeFeatureRule](#node-feature-rules) `annotations` or `extendedResources`. |
+|                  |              | **`physical_cores`** | int | Number of physical CPU cores. Not exposed as a label by default. |
+|                  |              | **`threads_per_core`** | int | Number of hardware threads per physical core. Not exposed as a label by default. |
+|                  |              | **`logical_cores`** | int | Total number of logical CPUs (physical cores × threads per core). Not exposed as a label by default. |
+|                  |              | **`stepping`** | int  | CPU stepping. Not exposed as a label by default. |
+|                  |              | **`cache_line`** | int | Cache line size in bytes. Not exposed as a label by default. |
+|                  |              | **`hz`** | int        | Base clock speed in Hz. Not exposed as a label by default. |
+|                  |              | **`boost_freq`** | int | Max boost clock speed in Hz, if known. Not exposed as a label by default. |
+|                  |              | **`cache_l1i`** | int  | L1 instruction cache size in bytes (per core or shared). Not exposed as a label by default. |
+|                  |              | **`cache_l1d`** | int  | L1 data cache size in bytes (per core or shared). Not exposed as a label by default. |
+|                  |              | **`cache_l2`** | int   | L2 cache size in bytes (per core or shared). Not exposed as a label by default. |
+|                  |              | **`cache_l3`** | int   | L3 cache size in bytes (per core, per ccx or shared). Not exposed as a label by default. |
 |                  |              | **`hypervisor`** | string | Hypervisor type information from `/proc/sysinfo` (s390x-only feature) |
 | **`cpu.pstate`** | attribute    |          |            | State of the Intel pstate driver. Does not exist if the driver is not enabled. |
 |                  |              | **`status`** | string | Status of the driver, possible values are 'active' and 'passive' |

@@ -156,8 +156,26 @@ func (s *cpuSource) GetLabels() (source.FeatureLabels, error) {
 	}
 
 	// CPU model
+	// skipModelLabel lists CPU model attributes that will not have labels
+	// created but are only made available for NodeFeatureRules (e.g. to be
+	// published via node annotations instead).
+	skipModelLabel := sets.NewString(
+		"name",
+		"physical_cores",
+		"threads_per_core",
+		"logical_cores",
+		"stepping",
+		"cache_line",
+		"hz",
+		"boost_freq",
+		"cache_l1i",
+		"cache_l1d",
+		"cache_l2",
+		"cache_l3")
 	for k, v := range features.Attributes[Cpumodel].Elements {
-		labels["model."+k] = v
+		if !skipModelLabel.Has(k) {
+			labels["model."+k] = v
+		}
 	}
 
 	// Cstate
@@ -263,6 +281,43 @@ func getCPUModel() map[string]string {
 	cpuModelInfo["vendor_id"] = cpuid.CPU.VendorID.String()
 	cpuModelInfo["family"] = strconv.Itoa(cpuid.CPU.Family)
 	cpuModelInfo["id"] = strconv.Itoa(cpuid.CPU.Model)
+
+	if brand := strings.TrimSpace(cpuid.CPU.BrandName); brand != "" {
+		cpuModelInfo["name"] = brand
+	}
+	if cpuid.CPU.PhysicalCores > 0 {
+		cpuModelInfo["physical_cores"] = strconv.Itoa(cpuid.CPU.PhysicalCores)
+	}
+	if cpuid.CPU.ThreadsPerCore > 1 {
+		cpuModelInfo["threads_per_core"] = strconv.Itoa(cpuid.CPU.ThreadsPerCore)
+	}
+	if cpuid.CPU.LogicalCores > 0 {
+		cpuModelInfo["logical_cores"] = strconv.Itoa(cpuid.CPU.LogicalCores)
+	}
+	if cpuid.CPU.Stepping > 0 {
+		cpuModelInfo["stepping"] = strconv.Itoa(cpuid.CPU.Stepping)
+	}
+	if cpuid.CPU.CacheLine > 0 {
+		cpuModelInfo["cache_line"] = strconv.Itoa(cpuid.CPU.CacheLine)
+	}
+	if cpuid.CPU.Hz > 0 {
+		cpuModelInfo["hz"] = strconv.FormatInt(cpuid.CPU.Hz, 10)
+	}
+	if cpuid.CPU.BoostFreq > 0 {
+		cpuModelInfo["boost_freq"] = strconv.FormatInt(cpuid.CPU.BoostFreq, 10)
+	}
+	if cpuid.CPU.Cache.L1I > 0 {
+		cpuModelInfo["cache_l1i"] = strconv.Itoa(cpuid.CPU.Cache.L1I)
+	}
+	if cpuid.CPU.Cache.L1D > 0 {
+		cpuModelInfo["cache_l1d"] = strconv.Itoa(cpuid.CPU.Cache.L1D)
+	}
+	if cpuid.CPU.Cache.L2 > 0 {
+		cpuModelInfo["cache_l2"] = strconv.Itoa(cpuid.CPU.Cache.L2)
+	}
+	if cpuid.CPU.Cache.L3 > 0 {
+		cpuModelInfo["cache_l3"] = strconv.Itoa(cpuid.CPU.Cache.L3)
+	}
 
 	hypervisor, err := getHypervisor()
 	if err != nil {

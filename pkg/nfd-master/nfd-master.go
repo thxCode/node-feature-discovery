@@ -838,7 +838,7 @@ func (m *nfdMaster) refreshNodeFeatures(cli k8sclient.Interface, node *corev1.No
 	}
 
 	// Annotations
-	annotations := m.filterFeatureAnnotations(crAnnotations)
+	annotations := m.filterFeatureAnnotations(crAnnotations, features)
 
 	// Taints
 	var taints []corev1.Taint
@@ -1353,21 +1353,34 @@ func (m *nfdMaster) startLeaderElectionHandler() {
 	leaderElector.Run(ctx)
 }
 
-// Filter annotations by namespace. i.e. adds the possibly missing default namespace for annotations
-func (m *nfdMaster) filterFeatureAnnotations(annotations map[string]string) map[string]string {
+// Filter annotations by namespace. i.e. adds the possibly missing default namespace for annotations.
+// Values starting with '@' are resolved as dynamic references to discovered features
+// (e.g. "@cpu.model.name" → cpu.model attribute "name").
+func (m *nfdMaster) filterFeatureAnnotations(annotations map[string]string, features *nfdv1alpha1.Features) map[string]string {
 	outAnnotations := make(map[string]string)
 
 	for annotation, value := range annotations {
+		// Resolve dynamic value
+		filteredValue := value
+		if strings.HasPrefix(value, "@") {
+			dynamicValue, err := getDynamicValue(value, features)
+			if err != nil {
+				klog.ErrorS(err, "ignoring annotation", "annotationKey", annotation, "annotationValue", value)
+				continue
+			}
+			filteredValue = dynamicValue
+		}
+
 		// Check annotation namespace, filter out if ns is not whitelisted
-		err := validate.Annotation(annotation, value)
+		err := validate.Annotation(annotation, filteredValue)
 		if err != nil {
 			if !nfdfeatures.NFDFeatureGate.Enabled(nfdfeatures.DisableAutoPrefix) || err != validate.ErrUnprefixedKeysNotAllowed {
-				klog.ErrorS(err, "ignoring annotation", "annotationKey", annotation, "annotationValue", value)
+				klog.ErrorS(err, "ignoring annotation", "annotationKey", annotation, "annotationValue", filteredValue)
 				continue
 			}
 		}
 
-		outAnnotations[annotation] = value
+		outAnnotations[annotation] = filteredValue
 	}
 
 	if len(outAnnotations) > 0 && m.config.Restrictions.DisableAnnotations {

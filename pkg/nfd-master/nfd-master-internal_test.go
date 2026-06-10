@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"maps"
 	"os"
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
@@ -484,7 +485,7 @@ func TestFilterLabels(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.description, func(t *testing.T) {
-			filteredAnnotations := fakeMaster.filterFeatureAnnotations(prefixlessAnnotation)
+			filteredAnnotations := fakeMaster.filterFeatureAnnotations(prefixlessAnnotation, &tc.features)
 			Convey("Unprefixed annotation should not be allowed", t, func() {
 				So(filteredAnnotations, ShouldEqual, tc.expectedAnnotations)
 			})
@@ -511,7 +512,7 @@ func TestFilterLabels(t *testing.T) {
 			}
 
 			labelValue, err := fakeMaster.filterFeatureLabel(tc.labelName, tc.labelValue, &tc.features)
-			filteredAnnotations := fakeMaster.filterFeatureAnnotations(testPrefixlessAnnotation)
+			filteredAnnotations := fakeMaster.filterFeatureAnnotations(testPrefixlessAnnotation, &tc.features)
 
 			Convey("Label should not be filtered out", t, func() {
 				So(err, ShouldBeNil)
@@ -856,6 +857,69 @@ func TestGetDynamicValue(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("getDynamicValue() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFilterFeatureAnnotationsDynamicValue(t *testing.T) {
+	fakeMaster := newFakeMaster()
+	features := &nfdv1alpha1.Features{
+		Attributes: map[string]nfdv1alpha1.AttributeFeatureSet{
+			"cpu.model": {
+				Elements: map[string]string{
+					"name":           "Intel(R) Xeon(R) Gold 6348",
+					"physical_cores": "28",
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		annotations map[string]string
+		want        map[string]string
+	}{
+		{
+			name: "Static and dynamic values resolved side by side",
+			annotations: map[string]string{
+				"feature.node.kubernetes.io/cpu-name":           "@cpu.model.name",
+				"feature.node.kubernetes.io/cpu-physical-cores": "@cpu.model.physical_cores",
+				"feature.node.kubernetes.io/static-anno":        "literal-value",
+			},
+			want: map[string]string{
+				"feature.node.kubernetes.io/cpu-name":           "Intel(R) Xeon(R) Gold 6348",
+				"feature.node.kubernetes.io/cpu-physical-cores": "28",
+				"feature.node.kubernetes.io/static-anno":        "literal-value",
+			},
+		},
+		{
+			name: "Unresolvable dynamic value is dropped, others kept",
+			annotations: map[string]string{
+				"feature.node.kubernetes.io/missing": "@cpu.model.no_such_element",
+				"feature.node.kubernetes.io/kept":    "@cpu.model.name",
+			},
+			want: map[string]string{
+				"feature.node.kubernetes.io/kept": "Intel(R) Xeon(R) Gold 6348",
+			},
+		},
+		{
+			name: "Malformed dynamic reference is dropped",
+			annotations: map[string]string{
+				"feature.node.kubernetes.io/bad":  "@notenoughparts",
+				"feature.node.kubernetes.io/good": "ok",
+			},
+			want: map[string]string{
+				"feature.node.kubernetes.io/good": "ok",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := fakeMaster.filterFeatureAnnotations(tt.annotations, features)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("filterFeatureAnnotations() = %v, want %v", got, tt.want)
 			}
 		})
 	}
